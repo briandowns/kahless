@@ -1,0 +1,53 @@
+#!/usr/bin/env dictu
+
+import System;
+
+import "kahless.du" as kahless;
+
+
+@Table("USERS")
+class User < kahless.Model {
+    @Column("first_name")
+    var firstName = "";
+
+    @Column("last_name")
+    var lastName = "";
+    var age = 0;
+}
+
+@Table("ROLES")
+class Role < kahless.Model {
+    @Column("name")
+    var name = "";
+}
+
+{ // main
+    const config = kahless.Config("sqlite", "test.db");
+
+    var k = kahless.Kahless(config);
+
+    const tables = [User(), Role()];
+    tables.forEach(def(table) => {
+        print("migrating table: {}".format(table._name));
+
+        const err = k.migrate(table);
+        if (not Success(err)) {
+            print("error: {}".format(err));
+            System.exit(1);
+        }
+    });
+
+    const user = User();
+    user.firstName = "John";
+    user.lastName = "Doe";
+    user.age = 28;
+
+    k.create(user);
+    const users = k.rawQuery("SELECT * FROM USERS").matchError(
+        def (error) => error
+    );
+    print(users);
+    print(k.last(user).unwrap());
+    print(k.rawQuery("SELECT sql FROM sqlite_schema WHERE name = 'ROLES'").unwrap());
+    k.delete(user, [1,2,3]);
+}
