@@ -48,6 +48,22 @@ Automatically increments the value for the field. This is used in conjunction to
 
 For a full example, examine the example.du file.
 
+## API
+
+### Retrieving Records
+
+* first
+* last
+* take
+
+### Deleting Records
+
+* delete
+
+### Updating Records
+
+### Raw Queries
+
 ## Contact
 
 Brian Downs [@bdowns328](http://twitter.com/bdowns328)

@@ -34,6 +34,16 @@ class Config {
     }
 }
 
+// Result holds the information associated with the 
+// previously ran query.
+class Result {
+    var result = nil;
+    var rowsAffected = 0;
+    var error = nil;
+
+    init() {}
+}
+
 // Model is a basic class that includes the following 
 // fields: id, created_at, updated_at, deleted_at.
 //
@@ -69,7 +79,7 @@ def isModelField(field) {
 // Validation contains common logic used throughout the 
 // Kahless module. It is to be inhereted into any class
 // needing access to the logic.
-abstract class Validation {
+class Validation {
     verifyAnnotations(model, name, required) {
         if (model._class.classAnnotations == nil) {
             return Error("class annotation missing from {}".format(model._name));
@@ -120,28 +130,28 @@ class Migrate < Validation {
         const fields = fieldAnnotations.keys();
         
         for (var i = 0; i < fields.len(); i += 1) {
-            if (fieldAnnotations[fields[i]].exists("Column")) {
-                query += fieldAnnotations[fields[i]].get("Column");
+            if (fieldAnnotations.get(fields[i]).exists("Column")) {
+                query += fieldAnnotations.get(fields[i]).get("Column");
             } else {
                 query += fields[i];
             }
             
-            if (fieldAnnotations[fields[i]].exists("Type")) {
-                const fieldType = fieldAnnotations[fields[i]].get("Type");
+            if (fieldAnnotations.get(fields[i]).exists("Type")) {
+                const fieldType = fieldAnnotations.get(fields[i]).get("Type");
                 if (fieldType == "DATETIME" and fields[i] == "createdAt") {
                     query += spaceSeperator + "DATETIME DEFAULT CURRENT_TIMESTAMP";
                 } else {
-                    query += spaceSeperator + fieldAnnotations[fields[i]].get("Type");
+                    query += spaceSeperator + fieldAnnotations.get(fields[i]).get("Type");
                 }
             } else {
                 query += spaceSeperator + dictuToSQLType.get(type(fields[i]));
             }
 
-            if (fieldAnnotations[fields[i]].exists("PrimaryKey")) {
+            if (fieldAnnotations.get(fields[i]).exists("PrimaryKey")) {
                 query += " PRIMARY KEY";
             }
 
-            if (fieldAnnotations[fields[i]].exists("AutoIncrement")) {
+            if (fieldAnnotations.get(fields[i]).exists("AutoIncrement")) {
                 query += " AUTOINCREMENT";
             }
 
@@ -209,8 +219,8 @@ class Kahless < Validation {
                 continue;
             }
 
-            if (fieldAnnotations[fields[i]].exists("Column")) {
-                query += fieldAnnotations[fields[i]].get("Column");
+            if (fieldAnnotations.get(fields[i]).exists("Column")) {
+                query += fieldAnnotations.get(fields[i]).get("Column");
             } else {
                 query += fields[i];
             }
@@ -283,11 +293,11 @@ class Kahless < Validation {
                 query += " id = {}".format(id);
             }
             case "number": {
-                if (id < 1) {
+                if (v < 1) {
                     return Error("invalid ID");
                 }
 
-                query += " id = {}".format(id);
+                query += " id = {}".format(v);
             }
             default:
                 return Error("unsupported type: ", t);
@@ -312,7 +322,16 @@ class Kahless < Validation {
             query = selectQuery.format("*", tableName) + " ORDER BY id LIMIT 1";
         }
         
-        return this.db.execute(query);
+        const res = this.db.execute(query);
+        if (not res.success()) {
+            return res;
+        }
+
+        const r = Result();
+        r.rows = res.unwrap();
+        r.rowsAffected = res.unwrap().len();
+
+        return Success(r); 
     }
 
     // take gets one record with no specified order.
@@ -325,7 +344,16 @@ class Kahless < Validation {
         const tableName = this.tableName(model);
         const query = selectQuery.format("*", tableName) + " LIMIT 1";
 
-        return this.db.execute(query); 
+        const res = this.db.execute(query);
+        if (not res.success()) {
+            return res;
+        }
+
+        const r = Result();
+        r.rows = res.unwrap();
+        r.rowsAffected = res.unwrap().len();
+
+        return Success(r); 
     }
 
     // last gets the last record ordered by primary key desc.
@@ -338,6 +366,15 @@ class Kahless < Validation {
         const tableName = this.tableName(model);
         const query = selectQuery.format("*", tableName) + " ORDER BY id DESC LIMIT 1";
 
-        return this.db.execute(query);
+        const res = this.db.execute(query);
+        if (not res.success()) {
+            return res;
+        }
+
+        const r = Result();
+        r.rows = res.unwrap();
+        r.rowsAffected = res.unwrap().len();
+
+        return Success(r);
     }
 }

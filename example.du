@@ -46,8 +46,8 @@ class Role < kahless.Model {
     const users = k.rawQuery("SELECT * FROM USERS").matchError(
         def (error) => error
     );
-    print(users);
-    print(k.last(user).unwrap());
-    print(k.rawQuery("SELECT sql FROM sqlite_schema WHERE name = 'ROLES'").unwrap());
-    k.delete(user, [1,2,3]);
+
+    print(k.last(user).unwrap().rows);
+    
+    print(k.delete(user, 10).unwrap().rowsAffected);
 }
