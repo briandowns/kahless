@@ -21,6 +21,12 @@ class Role < kahless.Model {
     var name = "";
 }
 
+@Table("A")
+class A < kahless.Model {
+    @Column("values")
+    var values = 0;
+}
+
 { // main
     const config = kahless.Config("sqlite", "test.db");
 
@@ -28,7 +34,7 @@ class Role < kahless.Model {
 
     const tables = [User(), Role()];
     tables.forEach(def(table) => {
-        print("migrating table: {}".format(table._name));
+        // print("migrating table: {}".format(table._name));
 
         const err = k.migrate(table);
         if (not Success(err)) {
@@ -43,11 +49,21 @@ class Role < kahless.Model {
     user.age = 28;
 
     k.create(user);
-    const users = k.rawQuery("SELECT * FROM USERS").matchError(
+    var users = k.rawQuery("SELECT * FROM USERS").matchError(
         def (error) => error
     );
 
     print(k.last(user).unwrap().rows);
+    print(k.last(user).unwrap().rowsAffected);
     
-    print(k.delete(user, 10).unwrap().rowsAffected);
+    const delRes = k.delete(User(), 62);
+    print(delRes);
+    if (not delRes.success()) {
+        print(delRes.unwrapError());
+    }
+
+    users = k.rawQuery("SELECT * FROM USERS").matchError(
+        def (error) => error
+    );
+    users.forEach(def(user) => print(user));
 }

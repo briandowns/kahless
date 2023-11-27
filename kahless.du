@@ -40,8 +40,6 @@ class Result {
     var result = nil;
     var rowsAffected = 0;
     var error = nil;
-
-    init() {}
 }
 
 // Model is a basic class that includes the following 
@@ -302,7 +300,7 @@ class Kahless < Validation {
             default:
                 return Error("unsupported type: ", t);
         }
-
+        
         return this.db.execute(query);
     }
 
