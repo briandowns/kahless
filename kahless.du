@@ -289,8 +289,8 @@ class Kahless < Validation {
             
             if (fields[i] == "updatedAt") {
                 const time = System.time();
-                const ts = Datetime.strftime("%s", time);
-                model.setAttribute(fields[i], ts.toNumber().unwrap());
+                const ts = Datetime.strftime("%Y-%m-%d %H:%M:%S", time);
+                model.setAttribute(fields[i], ts);
             }
 
             const v = model.getAttribute(fields[i]);

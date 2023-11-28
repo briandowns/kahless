@@ -61,7 +61,7 @@ class Role < kahless.Model {
     users.forEach(def(user) => print(user));
 
     const u2 = User();
-    u2.id = 7;
+    u2.id = 2;
     u2.age = 74;
     u2.firstName = "James";
     u2.lastName = "Downsey";
