@@ -50,7 +50,7 @@ class Role < kahless.Model {
     print(k.last(user).unwrap().rows);
     print(k.last(user).unwrap().rowsAffected);
     
-    const delRes = k.delete(User(), 62);
+    const delRes = k.delete(User(), 1);
     if (not delRes.success()) {
         print(delRes.unwrapError());
     }

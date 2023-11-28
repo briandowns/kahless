@@ -1,6 +1,6 @@
 # kahless 
 
-kahless (KAY-less) is a naive attempt at an ORM for Dictu.
+kahless (KAY-less) is an attempt at an ORM for Dictu.
 
 ## Drivers
 
@@ -62,7 +62,11 @@ For a full example, examine the example.du file.
 
 ### Updating Records
 
+* update
+
 ### Raw Queries
+
+* rawQuery
 
 ## Contact
 
