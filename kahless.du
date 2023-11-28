@@ -123,18 +123,19 @@ class Migrate < Validation {
 
         var query = createQuery;
         query = query.format(tableName);
-        
+
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
+        const fieldsLen = fields.len();
         const fieldAnnotations = klass.fieldAnnotations;
-        const fields = fieldAnnotations.keys();
         
         for (var i = 0; i < fields.len(); i += 1) {
-            if (fieldAnnotations.get(fields[i]).exists("Column")) {
+            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Column")) {
                 query += fieldAnnotations.get(fields[i]).get("Column");
             } else {
                 query += fields[i];
             }
             
-            if (fieldAnnotations.get(fields[i]).exists("Type")) {
+            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Type")) {
                 const fieldType = fieldAnnotations.get(fields[i]).get("Type");
                 if (fieldType == "DATETIME" and fields[i] == "createdAt") {
                     query += spaceSeperator + "DATETIME DEFAULT CURRENT_TIMESTAMP";
@@ -145,11 +146,11 @@ class Migrate < Validation {
                 query += spaceSeperator + dictuToSQLType.get(type(fields[i]));
             }
 
-            if (fieldAnnotations.get(fields[i]).exists("PrimaryKey")) {
+            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("PrimaryKey")) {
                 query += " PRIMARY KEY";
             }
 
-            if (fieldAnnotations.get(fields[i]).exists("AutoIncrement")) {
+            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("AutoIncrement")) {
                 query += " AUTOINCREMENT";
             }
 
