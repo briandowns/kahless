@@ -12,19 +12,13 @@ class User < kahless.Model {
 
     @Column("last_name")
     var lastName = "";
-    var age = 0;
+    var age = 1;
 }
 
 @Table("ROLES")
 class Role < kahless.Model {
     @Column("name")
     var name = "";
-}
-
-@Table("A")
-class A < kahless.Model {
-    @Column("values")
-    var values = 0;
 }
 
 { // main
@@ -57,7 +51,6 @@ class A < kahless.Model {
     print(k.last(user).unwrap().rowsAffected);
     
     const delRes = k.delete(User(), 62);
-    print(delRes);
     if (not delRes.success()) {
         print(delRes.unwrapError());
     }
@@ -66,4 +59,15 @@ class A < kahless.Model {
         def (error) => error
     );
     users.forEach(def(user) => print(user));
+
+    const u2 = User();
+    u2.id = 201;
+    u2.age = 10;
+    u2.firstName = "Brian";
+    u2.lastName = "Downs";
+    const resUpdate = k.update(u2);
+    if (not resUpdate.success()) {
+        print(resUpdate.unwrapError());
+    }
+
 }

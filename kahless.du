@@ -1,11 +1,11 @@
 import Datetime;
 import Sqlite;
-
+import System;
 
 const
     selectQuery = "SELECT {} FROM {}",
     insertQuery = "INSERT INTO {} (",
-    updateQuery = "UPDATE {} (",
+    updateQuery = "UPDATE {} SET",
     createQuery = "CREATE TABLE IF NOT EXISTS {} (",
     deleteQuery = "DELETE FROM {} WHERE";
 
@@ -260,7 +260,67 @@ class Kahless < Validation {
     }
 
     // update
-    update(model) {}
+    update(model) {
+        const klass = model._class;
+        const modelName = model._class._name;
+
+        const err = this.verifyAnnotations(model, "Table", true);
+        if (not Success(err)) {
+            return err;
+        }
+
+        const tableName = this.tableName(model);
+        var query = updateQuery.format(tableName);
+
+        const id = model.getAttribute("id");
+        if (id == 0) {
+            return Error("invalid ID given");
+        }
+
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
+        const fieldsLen = fields.len();
+        const fieldAnnotations = klass.fieldAnnotations;
+        
+        for (var i = 0; i < fieldsLen; i += 1) {
+            if (fields[i] == "id" or fields[i] == "createdAt" or fields[i] == "deletedAt") {
+                continue;
+            }
+            
+            if (fields[i] == "updatedAt") {
+                const time = System.time();
+                const ts = Datetime.strftime("%s", time);
+                model.setAttribute(fields[i], ts.toNumber().unwrap());
+            }
+
+            const v = model.getAttribute(fields[i]);
+            const t = type(v);
+            if (t == "string" and v == "") {
+                continue;
+            }
+        
+            if (fieldAnnotations.get(fields[i]) != nil) {
+                if (fieldAnnotations.get(fields[i]).exists("Column")) {
+                    query += spaceSeperator + fieldAnnotations.get(fields[i]).get("Column");
+                }
+            } else {
+                query += spaceSeperator + fields[i];
+            }
+
+            switch(t) {
+                case "string": {
+                    query += " = '{}',".format(v);
+                }
+                case "number": {
+                    query += " = {},".format(v);
+                }
+            }
+        }
+
+        query = query[0:query.len()-1];
+        query += " WHERE id = {};".format(id);
+
+        return this.db.execute(query);
+    }
 
     // delete deletes the the record associated with the model
     // and id given.
@@ -300,7 +360,7 @@ class Kahless < Validation {
             default:
                 return Error("unsupported type: ", t);
         }
-        
+
         return this.db.execute(query);
     }
 
