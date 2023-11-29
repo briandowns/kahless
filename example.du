@@ -50,9 +50,10 @@ class Role < kahless.Model {
     print(k.last(user).unwrap().rows);
     print(k.last(user).unwrap().rowsAffected);
     
-    const delRes = k.delete(User(), 1);
+    const delRes = k.delete(User(), 36);
     if (not delRes.success()) {
         print(delRes.unwrapError());
+        System.exit(1);
     }
 
     users = k.rawQuery("SELECT * FROM USERS").matchError(

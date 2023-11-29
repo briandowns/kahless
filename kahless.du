@@ -74,6 +74,15 @@ def isModelField(field) {
     return ["id", "createdAt", "updatedAt", "deletedAt"].contains(field);
 }
 
+// getTimestamp generates a new timestamp to be used during
+// record updates.
+def getTimestamp() {
+    const time = System.time();
+    const ts = Datetime.strftime("%Y-%m-%d %H:%M:%S", time);
+
+    return ts;
+}
+
 // Validation contains common logic used throughout the 
 // Kahless module. It is to be inhereted into any class
 // needing access to the logic.
@@ -165,8 +174,10 @@ class Migrate < Validation {
     }
 }
 
-// Kahless is the primary provider of services for the module. All
-// connections, queries, and validations are done via this class.
+/* 
+ * Kahless is the primary provider of services for the module. All
+ * connections, queries, and validations are done via this class.
+ */
 class Kahless < Validation {
     init(config) {
         this.config = config;
@@ -178,8 +189,10 @@ class Kahless < Validation {
         return model._class.classAnnotations.get("Table");
     }
 
-    // connect connects to the given database based on the driver
-    // configured. Currently, only SQLite is supported.
+    /* 
+     * connect connects to the given database based on the driver
+     * configured. Currently, only SQLite is supported.
+     */
     connect() {
         if (this.config.driver == "sqlite") {
             if (this.config.path == "") {
@@ -190,10 +203,16 @@ class Kahless < Validation {
         }
     }
 
+    /* 
+     * migrate performs a migration for the given models.
+     */
     migrate(...models) {
         return models.map(def(m) => Migrate(this).run(m));
     }
 
+    /*
+     * create takes a model and inserts a record associated with it.
+     */
     create(model) {
         const klass = model._class;
         const modelName = model._class._name;
@@ -210,8 +229,7 @@ class Kahless < Validation {
 
         const fieldAnnotations = klass.fieldAnnotations;
         const fields = fieldAnnotations.keys();
-
-        var fieldsLen = fields.len();
+        const fieldsLen = fields.len();
 
         for (var i = 0; i < fields.len(); i += 1) {
             if (isModelField(fields[i])) {
@@ -254,13 +272,17 @@ class Kahless < Validation {
         return this.db.execute(query);
     }
 
-    // rawQuery executes the given query with no checks
-    // or validations and returns the results.
+    /* 
+     * rawQuery executes the given query with no checks
+     * or validations and returns the results.
+     */
     rawQuery(query) {
         return this.db.execute(query);
     }
 
-    // update
+    /* 
+     * update takes a model and updates the associated row.
+     */
     update(model) {
         const klass = model._class;
         const modelName = model._class._name;
@@ -288,9 +310,7 @@ class Kahless < Validation {
             }
             
             if (fields[i] == "updatedAt") {
-                const time = System.time();
-                const ts = Datetime.strftime("%Y-%m-%d %H:%M:%S", time);
-                model.setAttribute(fields[i], ts);
+                model.setAttribute(fields[i], getTimestamp());
             }
 
             const v = model.getAttribute(fields[i]);
@@ -323,8 +343,10 @@ class Kahless < Validation {
         return this.db.execute(query);
     }
 
-    // delete deletes the the record associated with the model
-    // and id given.
+    /*
+     * delete deletes the the record associated with the model
+     * and value given.
+     */
     delete(model, v=nil) {
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
@@ -332,6 +354,15 @@ class Kahless < Validation {
         }
 
         const tableName = this.tableName(model);
+
+        // check for "deletedAt" field and perform soft delete
+        if (model.getAttribute("deletedAt") != nil) {
+            model.setAttribute("deletedAt", getTimestamp());
+            const query = "UPDATE {} SET deleted_at = '{}' WHERE id = {}".format(tableName, getTimestamp(), v);
+
+            return this.db.execute(query);
+        }
+
         var query = deleteQuery.format(tableName);
 
         const t = type(v);
@@ -365,7 +396,9 @@ class Kahless < Validation {
         return this.db.execute(query);
     }
 
-    // first gets the first record ordered by primary key.
+    /* 
+     * first gets the first record ordered by primary key.
+     */
     first(model, id=-1) {
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
@@ -387,13 +420,17 @@ class Kahless < Validation {
         }
 
         const r = Result();
-        r.rows = res.unwrap();
+        r.rows = res.unwrap()
+            .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
+
         r.rowsAffected = res.unwrap().len();
 
         return Success(r); 
     }
 
-    // take gets one record with no specified order.
+    /* 
+     * take gets one record with no specified order.
+     */
     take(model) {
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
@@ -409,13 +446,16 @@ class Kahless < Validation {
         }
 
         const r = Result();
-        r.rows = res.unwrap();
+        r.rows = res.unwrap()
+            .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
         r.rowsAffected = res.unwrap().len();
 
         return Success(r); 
     }
 
-    // last gets the last record ordered by primary key desc.
+    /* 
+     * last gets the last record ordered by primary key desc.
+     */
     last(model) {
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
@@ -431,7 +471,8 @@ class Kahless < Validation {
         }
 
         const r = Result();
-        r.rows = res.unwrap();
+        r.rows = res.unwrap()
+            .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
         r.rowsAffected = res.unwrap().len();
 
         return Success(r);
