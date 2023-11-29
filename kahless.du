@@ -1,4 +1,6 @@
 import Datetime;
+import JSON;
+import Object;
 import Sqlite;
 import System;
 
@@ -7,7 +9,8 @@ const
     insertQuery = "INSERT INTO {} (",
     updateQuery = "UPDATE {} SET",
     createQuery = "CREATE TABLE IF NOT EXISTS {} (",
-    deleteQuery = "DELETE FROM {} WHERE";
+    deleteQuery = "DELETE FROM {} WHERE",
+    selectJsonQuery = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
 
 const
     singleQuote = "\"",
@@ -19,8 +22,10 @@ const dictuToSQLType = {
     "bool": "REAL",
 };
 
-// Config contains fieldss to provide when instantiating
-// a new instance of Kahless.
+/*
+ * Config contains fieldss to provide when instantiating
+ * a new instance of Kahless.
+ */
 class Config { 
     var debug = false;
 
@@ -34,21 +39,25 @@ class Config {
     }
 }
 
-// Result holds the information associated with the 
-// previously ran query.
+/*
+ * Result holds the information associated with the 
+ * previously ran query.
+ */
 class Result {
     var result = nil;
     var rowsAffected = 0;
     var error = nil;
 }
 
-// Model is a basic class that includes the following 
-// fields: id, created_at, updated_at, deleted_at.
-//
-// To use this model in your model, have your class
-// inherit this class.
-//
-// Models need to be defined with their zero value.
+/*
+ * Model is a basic class that includes the following 
+ * fields: id, created_at, updated_at, deleted_at.
+ *
+ * To use this model in your model, have your class
+ * inherit this class.
+ * 
+ * Models need to be defined with their zero value.
+ */
 class Model {
     @PrimaryKey
     @AutoIncrement
@@ -68,16 +77,28 @@ class Model {
     var deletedAt = "";
 }
 
-// isModelField checks if the given field is
-// a field in the Model class.
+/*
+ * isModelField checks if the given field is
+ * a field in the Model class.
+ */
 def isModelField(field) {
     return ["id", "createdAt", "updatedAt", "deletedAt"].contains(field);
 }
 
-// getTimestamp generates a new timestamp to be used during
-// record updates.
+/*
+ * getTimestamp generates a new timestamp to be used during
+ * record updates.
+ */
 def getTimestamp() {
     return Datetime.strftime("%Y-%m-%d %H:%M:%S");
+}
+
+/*
+ * resultToClass
+ */
+def resultToClass(result, model) {
+    const rows = result.unwrap();
+
 }
 
 // Validation contains common logic used throughout the 
@@ -465,5 +486,68 @@ class Kahless < Validation {
         r.rowsAffected = res.unwrap().len();
 
         return Success(r);
+    }
+
+    json(model) {
+        const klass = model._class;
+        const modelName = model._class._name;
+
+        const err = this.verifyAnnotations(model, "Table", true);
+        if (not Success(err)) {
+            return err;
+        }
+
+        const tableName = this.tableName(model);
+
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
+        const fieldsLen = fields.len();
+        const fieldAnnotations = klass.fieldAnnotations;
+        
+        var jsonFields = "";
+
+        for (var i = 0; i < fieldsLen; i += 1) {
+            if (isModelField(fields[i])) {
+                continue;
+            }
+        
+            if (fieldAnnotations.get(fields[i]) != nil) {
+                if (fieldAnnotations.get(fields[i]).exists("Column")) {
+                    jsonFields += "'" + fields[i] + "', " + fieldAnnotations.get(fields[i]).get("Column") + ",";
+                }
+            } else {
+                jsonFields += "'" + fields[i] + "', " + fields[i] + ",";
+            }
+        }
+
+        jsonFields = jsonFields[0:jsonFields.len()-1];
+
+        var query = selectJsonQuery.format(jsonFields, tableName);
+        query = query + " LIMIT 1";
+        print(query);
+
+        const res = this.db.execute(query);
+        if (not res.success()) {
+            return res;
+        }
+
+        const r = Result();
+        r.rows = res.unwrap();
+        //    .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
+        r.rowsAffected = res.unwrap().len();
+
+        const parsed = JSON.parse(r.rows[0][0]).unwrap();
+        
+        const newModel = Object.getClassRef(model._name).unwrap();
+        
+        for (var i = 0; i < fieldsLen; i += 1) {
+            newModel.setAttribute(fields[i], parsed.get(fields[i]));
+        }
+        
+        print(model.id);
+        print(model.firstName);
+        print(model.lastName);
+        print(model.age);
+
+        return Success(r); 
     }
 }

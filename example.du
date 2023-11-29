@@ -74,4 +74,9 @@ class Role < kahless.Model {
         def (error) => error
     );
     users.forEach(def(user) => print(user));
+
+    const jsonRes = k.json(User());
+    const jres = jsonRes.unwrap();
+    print(jres.rowsAffected);
+    print(jres.rows);
 }
