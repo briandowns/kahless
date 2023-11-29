@@ -60,6 +60,8 @@ For a full example, examine the example.du file.
 
 * delete
 
+If the model contains a field called `deletedAt`, you receive soft delete ability automatically. If the model doesn't contain this field, the record is deleted permanently.
+
 ### Updating Records
 
 * update
