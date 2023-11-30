@@ -104,9 +104,7 @@ class Migrate < Validation {
 
     // run performs the migration.
     run(model) {
-        const query = this.buildQuery(model).matchError(
-            def (error) => error
-        );
+        const query = this.buildQuery(model).unwrap();
 
         return this.db.db.execute(query);
     }
