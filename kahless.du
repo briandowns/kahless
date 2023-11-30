@@ -77,10 +77,7 @@ def isModelField(field) {
 // getTimestamp generates a new timestamp to be used during
 // record updates.
 def getTimestamp() {
-    const time = System.time();
-    const ts = Datetime.strftime("%Y-%m-%d %H:%M:%S", time);
-
-    return ts;
+    return Datetime.strftime("%Y-%m-%d %H:%M:%S");
 }
 
 // Validation contains common logic used throughout the 
@@ -107,12 +104,7 @@ class Migrate < Validation {
 
     // run performs the migration.
     run(model) {
-        const query = this.buildQuery(model).match(
-            def(query) => query,
-            def(error) => {
-                return error;
-            }
-        );
+        const query = this.buildQuery(model).unwrap();
 
         return this.db.db.execute(query);
     }
@@ -130,8 +122,7 @@ class Migrate < Validation {
 
         const tableName = klass.classAnnotations["Table"];
 
-        var query = createQuery;
-        query = query.format(tableName);
+        var query = createQuery.format(tableName);
 
         const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
         const fieldsLen = fields.len();
@@ -218,14 +209,12 @@ class Kahless < Validation {
         const modelName = model._class._name;
 
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 
         const tableName = model._class.classAnnotations.get("Table");
-        var query = insertQuery;
-
-        query = query.format(tableName);
+        var query = insertQuery.format(tableName);
 
         const fieldAnnotations = klass.fieldAnnotations;
         const fields = fieldAnnotations.keys();
@@ -288,7 +277,7 @@ class Kahless < Validation {
         const modelName = model._class._name;
 
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 
@@ -305,7 +294,7 @@ class Kahless < Validation {
         const fieldAnnotations = klass.fieldAnnotations;
         
         for (var i = 0; i < fieldsLen; i += 1) {
-            if (fields[i] == "id" or fields[i] == "createdAt" or fields[i] == "deletedAt") {
+            if (["id", "createdAt", "deletedAt"].contains(fields[i])) {
                 continue;
             }
             
@@ -349,7 +338,7 @@ class Kahless < Validation {
      */
     delete(model, v=nil) {
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 
@@ -458,7 +447,7 @@ class Kahless < Validation {
      */
     last(model) {
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 
