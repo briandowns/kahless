@@ -44,17 +44,17 @@ Indidates that the field is to be used as the primary key for the table.
 
 Automatically increments the value for the field. This is used in conjunction to the `@PrimaryKey` annotation.
 
-## Eamples
+## Examples
 
-For a full example, examine the example.du file.
+For a full example, check out the example.du file.
 
 ## API
 
 ### Retrieving Records
 
-* first
-* last
-* take
+* first - returns the first record in the table
+* last - returns the last record in the table
+* find - gets all records from the table
 
 ### Deleting Records
 
@@ -68,7 +68,7 @@ If the model contains a field called `deletedAt`, you receive soft delete abilit
 
 ### Raw Queries
 
-* rawQuery
+* rawQuery - takes an SQL query, executes it, and returns the results in list form
 
 ## Contact
 

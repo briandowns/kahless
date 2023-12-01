@@ -10,7 +10,8 @@ const
     updateQuery = "UPDATE {} SET",
     createQuery = "CREATE TABLE IF NOT EXISTS {} (",
     deleteQuery = "DELETE FROM {} WHERE",
-    selectJsonQuery = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
+    selectJsonQuery = "SELECT json_object({}) FROM {}",
+    selectJsonQueryWithModel = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
 
 const
     singleQuote = "\"",
@@ -44,7 +45,7 @@ class Config {
  * previously ran query.
  */
 class Result {
-    var result = nil;
+    var rows = nil;
     var rowsAffected = 0;
     var error = nil;
 }
@@ -101,9 +102,11 @@ def resultToClass(result, model) {
 
 }
 
-// Validation contains common logic used throughout the 
-// Kahless module. It is to be inhereted into any class
-// needing access to the logic.
+/*
+ * Validation contains common logic used throughout the 
+ * Kahless module. It is to be inhereted into any class
+ * needing access to the logic.
+ */
 class Validation {
     verifyAnnotations(model, name, required) {
         if (model._class.classAnnotations == nil) {
@@ -118,20 +121,26 @@ class Validation {
     }
 }
 
-// Migrate is used to create tables in the database 
-// for the given model.
+/*
+ * Migrate is used to create tables in the database 
+ * for the given model.
+ */
 class Migrate < Validation {
     init(var db) {}
 
-    // run performs the migration.
+    /*
+     * run performs the migration.
+     */
     run(model) {
         const query = this.buildQuery(model).unwrap();
 
         return this.db.db.execute(query);
     }
 
-    // buildQuery builds the SQL query to create the table
-    // for the given model.
+    /* 
+     * buildQuery builds the SQL query to create the table
+     * for the given model.
+     */
     private buildQuery(model) {
         const klass = model._class;
         const modelName = model._class._name;
@@ -227,7 +236,6 @@ class Kahless < Validation {
      */
     create(model) {
         const klass = model._class;
-        const modelName = model._class._name;
 
         const err = this.verifyAnnotations(model, "Table", true);
         if (not err.success()) {
@@ -237,29 +245,26 @@ class Kahless < Validation {
         const tableName = model._class.classAnnotations.get("Table");
         var query = insertQuery.format(tableName);
 
-        const fieldAnnotations = klass.fieldAnnotations;
-        const fields = fieldAnnotations.keys();
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
         const fieldsLen = fields.len();
+        const fieldAnnotations = klass.fieldAnnotations;
 
-        for (var i = 0; i < fields.len(); i += 1) {
+        for (var i = 0; i < fieldsLen; i += 1) {
             if (isModelField(fields[i])) {
                 continue;
             }
 
-            if (fieldAnnotations.get(fields[i]).exists("Column")) {
-                query += fieldAnnotations.get(fields[i]).get("Column");
+            if (fieldAnnotations.get(fields[i]) != nil) {
+                if (fieldAnnotations.get(fields[i]).exists("Column")) {
+                    query += fieldAnnotations.get(fields[i]).get("Column") + " ";
+                }
             } else {
-                query += fields[i];
-            }
-
-            if (i != fields.len()-4) {
-                query += ", ";
-            } else {
-                query += ")";
-            }
+                query += fields[i] + " ";
+            }        
         }
 
-        query = query + " VALUES (";
+        query = query[0:query.len()-1];
+        query += ") VALUES (";
 
         for (var i = 0; i < fieldsLen; i += 1) {
             if (isModelField(fields[i])) {
@@ -270,15 +275,11 @@ class Kahless < Validation {
             if (type(value) != "string") {
                 value = value.toString();
             }
-            query += singleQuote + value + singleQuote;
-
-            if (i != fieldsLen-4) {
-                query += ", ";
-            } else {
-                query += ")";
-            }
+            query += singleQuote + value + singleQuote + ",";
         }
 
+        query = query[0:query.len()-1];
+        query += ")";
         return this.db.execute(query);
     }
 
@@ -409,20 +410,39 @@ class Kahless < Validation {
     /* 
      * first gets the first record ordered by primary key.
      */
-    first(model, id=-1) {
+    first(model) {
+        const klass = model._class;
+
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
             return err;
         }
 
         const tableName = this.tableName(model);
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
+        const fieldsLen = fields.len();
+        const fieldAnnotations = klass.fieldAnnotations;
 
-        var query = selectQuery.format("*", tableName);
-        if (id > 1) {
-            query += " WHERE id = {} ORDER BY id LIMIT 1".format(id);
-        } else {
-            query = selectQuery.format("*", tableName) + " ORDER BY id LIMIT 1";
+        var jsonFields = "";
+
+        for (var i = 0; i < fieldsLen; i += 1) {
+            if (isModelField(fields[i])) {
+                continue;
+            }
+        
+            if (fieldAnnotations.get(fields[i]) != nil) {
+                if (fieldAnnotations.get(fields[i]).exists("Column")) {
+                    jsonFields += "'" + fields[i] + "', " + fieldAnnotations.get(fields[i]).get("Column") + ",";
+                }
+            } else {
+                jsonFields += "'" + fields[i] + "', " + fields[i] + ",";
+            }
         }
+
+        jsonFields = jsonFields[0:jsonFields.len()-1];
+
+        var query = selectJsonQueryWithModel.format(jsonFields, tableName);
+        query += " ORDER BY id LIMIT 1";
         
         const res = this.db.execute(query);
         if (not res.success()) {
@@ -430,25 +450,62 @@ class Kahless < Validation {
         }
 
         const r = Result();
-        r.rows = res.unwrap()
-            .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
+        r.rows = [];
 
-        r.rowsAffected = res.unwrap().len();
+        res.unwrap().forEach(def(row) => {
+            const parsed = JSON.parse(row[0]).unwrap();
+            const newModel = klass();
+
+            for (var i = 0; i < fieldsLen; i += 1) {
+                // filter out "deleted" records
+                if (fields[i] == "deletedAt" and fields[i] != nil) {
+                    continue;
+                }
+                newModel.setAttribute(fields[i], parsed.get(fields[i]));
+            }
+
+            r.rows.push(newModel);
+        });
+        r.rowsAffected = r.rows.len();
 
         return Success(r); 
     }
 
     /* 
-     * take gets one record with no specified order.
+     * find gets all records for the given model.
      */
-    take(model) {
+    find(model) {
+        const klass = model._class;
+        
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
             return err;
         }
 
         const tableName = this.tableName(model);
-        const query = selectQuery.format("*", tableName) + " LIMIT 1";
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
+        const fieldsLen = fields.len();
+        const fieldAnnotations = klass.fieldAnnotations;
+
+        var jsonFields = "";
+
+        for (var i = 0; i < fieldsLen; i += 1) {
+            if (isModelField(fields[i])) {
+                continue;
+            }
+        
+            if (fieldAnnotations.get(fields[i]) != nil) {
+                if (fieldAnnotations.get(fields[i]).exists("Column")) {
+                    jsonFields += "'" + fields[i] + "', " + fieldAnnotations.get(fields[i]).get("Column") + ",";
+                }
+            } else {
+                jsonFields += "'" + fields[i] + "', " + fields[i] + ",";
+            }
+        }
+
+        jsonFields = jsonFields[0:jsonFields.len()-1];
+
+        var query = selectJsonQueryWithModel.format(jsonFields, tableName);
 
         const res = this.db.execute(query);
         if (not res.success()) {
@@ -456,9 +513,23 @@ class Kahless < Validation {
         }
 
         const r = Result();
-        r.rows = res.unwrap()
-            .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
-        r.rowsAffected = res.unwrap().len();
+        r.rows = [];
+
+        res.unwrap().forEach(def(row) => {
+            const parsed = JSON.parse(row[0]).unwrap();
+            const newModel = klass();
+
+            for (var i = 0; i < fieldsLen; i += 1) {
+                // filter out "deleted" records
+                if (fields[i] == "deletedAt" and fields[i] != nil) {
+                    continue;
+                }
+                newModel.setAttribute(fields[i], parsed.get(fields[i]));
+            }
+
+            r.rows.push(newModel);
+        });
+        r.rowsAffected = r.rows.len();
 
         return Success(r); 
     }
@@ -467,30 +538,7 @@ class Kahless < Validation {
      * last gets the last record ordered by primary key desc.
      */
     last(model) {
-        const err = this.verifyAnnotations(model, "Table", true);
-        if (not err.success()) {
-            return err;
-        }
-
-        const tableName = this.tableName(model);
-        const query = selectQuery.format("*", tableName) + " ORDER BY id DESC LIMIT 1";
-
-        const res = this.db.execute(query);
-        if (not res.success()) {
-            return res;
-        }
-
-        const r = Result();
-        r.rows = res.unwrap()
-            .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
-        r.rowsAffected = res.unwrap().len();
-
-        return Success(r);
-    }
-
-    json(model) {
         const klass = model._class;
-        const modelName = model._class._name;
 
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
@@ -498,7 +546,6 @@ class Kahless < Validation {
         }
 
         const tableName = this.tableName(model);
-
         const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
         const fieldsLen = fields.len();
         const fieldAnnotations = klass.fieldAnnotations;
@@ -521,9 +568,8 @@ class Kahless < Validation {
 
         jsonFields = jsonFields[0:jsonFields.len()-1];
 
-        var query = selectJsonQuery.format(jsonFields, tableName);
-        query = query + " LIMIT 1";
-        print(query);
+        var query = selectJsonQueryWithModel.format(jsonFields, tableName);
+        query += " ORDER BY id DESC LIMIT 1";
 
         const res = this.db.execute(query);
         if (not res.success()) {
@@ -531,22 +577,23 @@ class Kahless < Validation {
         }
 
         const r = Result();
-        r.rows = res.unwrap();
-        //    .filter(def(x) => model.hasAttribute("deletedAt") and model.getAttribute("deletedAt") == nil);
-        r.rowsAffected = res.unwrap().len();
+        r.rows = [];
 
-        const parsed = JSON.parse(r.rows[0][0]).unwrap();
-        
-        const newModel = Object.getClassRef(model._name).unwrap();
-        
-        for (var i = 0; i < fieldsLen; i += 1) {
-            newModel.setAttribute(fields[i], parsed.get(fields[i]));
-        }
-        
-        print(model.id);
-        print(model.firstName);
-        print(model.lastName);
-        print(model.age);
+        res.unwrap().forEach(def(row) => {
+            const parsed = JSON.parse(row[0]).unwrap();
+            const newModel = klass();
+
+            for (var i = 0; i < fieldsLen; i += 1) {
+                // filter out "deleted" records
+                if (fields[i] == "deletedAt" and fields[i] != nil) {
+                    continue;
+                }
+                newModel.setAttribute(fields[i], parsed.get(fields[i]));
+            }
+
+            r.rows.push(newModel);
+        });
+        r.rowsAffected = r.rows.len();
 
         return Success(r); 
     }
