@@ -142,7 +142,6 @@ class Migrate < Validation {
      */
     private buildQuery(model) {
         const klass = model._class;
-        const modelName = model._class._name;
 
         const err = this.verifyAnnotations(model, "Table", true);
         if (not Success(err)) {
@@ -295,7 +294,6 @@ class Kahless < Validation {
      */
     update(model) {
         const klass = model._class;
-        const modelName = model._class._name;
 
         const err = this.verifyAnnotations(model, "Table", true);
         if (not err.success()) {
