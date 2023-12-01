@@ -268,7 +268,12 @@ class Kahless < Validation {
 
         query = query[0:query.len()-1];
         query += ")";
-        return this.db.execute(query);
+        const insert = this.db.execute(query);
+
+        const lastId = this.db.execute("SELECT LAST_INSERT_ROWID()").unwrap();
+        model.id = lastId[0][0];
+
+        return insert;
     }
 
     /* 
@@ -317,10 +322,8 @@ class Kahless < Validation {
                 continue;
             }
         
-            if (fieldAnnotations.get(fields[i]) != nil) {
-                if (fieldAnnotations.get(fields[i]).exists("Column")) {
-                    query += spaceSeperator + fieldAnnotations.get(fields[i]).get("Column");
-                }
+            if (fieldAnnotations.get(fields[i])?.exists("Column")) {
+                query += spaceSeperator + fieldAnnotations.get(fields[i]).get("Column");
             } else {
                 query += spaceSeperator + fields[i];
             }
@@ -374,7 +377,7 @@ class Kahless < Validation {
                 query += " id in ({})".format(ids);            
             }
             case "string": {
-                if (v.toNumber() < 0) {
+                if (v.toNumber().unwrap() < 0) {
                     return Error("invalid ID");
                 }
 

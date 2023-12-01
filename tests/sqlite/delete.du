@@ -1,0 +1,36 @@
+from UnitTest import UnitTest;
+
+import "../../kahless.du" as kahless;
+
+@Table("users")
+class User < kahless.Model {
+    @Column("first_name")
+    var firstName = "";
+
+    @Column("last_name")
+    var lastName = "";
+
+    @Column("age")
+    var age = 0;
+}
+
+@Table("roles")
+class Role < kahless.Model {
+    var name = "";
+}
+
+const config = kahless.Config("sqlite", ":memory:");
+const k = kahless.Kahless(config);
+
+class TestKahlessDelete < UnitTest {
+    setUp() {
+        const models = [User(), Role()];
+        k.migrate(...models);
+    }
+
+    testDelete() {
+        // TODO
+    }
+}
+
+TestKahlessDelete().run();

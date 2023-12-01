@@ -3,3 +3,6 @@
  */
 import "./sqlite/migrate.du";
 import "./sqlite/create.du";
+import "./sqlite/update.du";
+import "./sqlite/delete.du";
+import "./sqlite/find.du";
