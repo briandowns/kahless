@@ -17,7 +17,6 @@ class User < kahless.Model {
 
 @Table("ROLES")
 class Role < kahless.Model {
-    @Column("name")
     var name = "";
 }
 
@@ -28,7 +27,7 @@ class Role < kahless.Model {
 
     const tables = [User(), Role()];
     tables.forEach(def(table) => {
-        // print("migrating table: {}".format(table._name));
+        print("migrating table: {}".format(table._name));
 
         const err = k.migrate(table);
         if (not Success(err)) {
@@ -43,35 +42,62 @@ class Role < kahless.Model {
     user.age = 28;
 
     k.create(user);
-    var users = k.rawQuery("SELECT * FROM USERS").matchError(
+    const users = k.rawQuery("SELECT * FROM USERS").matchError(
         def (error) => error
     );
 
-    print(k.last(user).unwrap().rows);
-    print(k.last(user).unwrap().rowsAffected);
+    // print(k.last(user).unwrap().rows);
+    // print(k.last(user).unwrap().rowsAffected);
     
-    const delRes = k.delete(User(), 36);
-    if (not delRes.success()) {
-        print(delRes.unwrapError());
-        System.exit(1);
-    }
+    // const delRes = k.delete(User(), 36);
+    // if (not delRes.success()) {
+    //     print(delRes.unwrapError());
+    //     System.exit(1);
+    // }
 
-    users = k.rawQuery("SELECT * FROM USERS").matchError(
+    // users = k.rawQuery("SELECT * FROM USERS").matchError(
+    //     def (error) => error
+    // );
+    // users.forEach(def(user) => print(user));
+
+    // const u2 = User();
+    // u2.id = 2;
+    // u2.age = 74;
+    // u2.firstName = "James";
+    // u2.lastName = "Downsey";
+    // const resUpdate = k.update(u2);
+    // if (not resUpdate.success()) {
+    //     print(resUpdate.unwrapError());
+    // }
+    // users = k.rawQuery("SELECT * FROM USERS").matchError(
+    //     def (error) => error
+    // );
+    // users.forEach(def(user) => print(user));
+
+    // const jsonRes = k.json(User());
+    // const jres = jsonRes.unwrap();
+    // print("Rows affected: {}".format(jres.rowsAffected));
+    // jres.rows.forEach(def(user) => print(user));
+
+    const last = k.last(User());
+    //print(last.unwrap().rows[0].id);
+
+    const find = k.find(User());
+    find.unwrap().rows.forEach(def(user) => print(user));
+
+    const first = k.first(User());
+    //print(first.unwrap().rows[0].id);
+
+    const role = Role();
+    role.name = "Admin";
+    const err = k.create(role);
+
+    const roles = k.rawQuery("SELECT * FROM ROLES").matchError(
         def (error) => error
     );
-    users.forEach(def(user) => print(user));
-
-    const u2 = User();
-    u2.id = 2;
-    u2.age = 74;
-    u2.firstName = "James";
-    u2.lastName = "Downsey";
-    const resUpdate = k.update(u2);
-    if (not resUpdate.success()) {
-        print(resUpdate.unwrapError());
-    }
-    users = k.rawQuery("SELECT * FROM USERS").matchError(
-        def (error) => error
-    );
-    users.forEach(def(user) => print(user));
+    
+    print(roles);
+    const find2 = k.find(Role());
+    print(find2.unwrap().rowsAffected);
+    find2.unwrap().rows.forEach(def(role) => print("XXX - {}".format(role.name)));
 }

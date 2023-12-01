@@ -9,7 +9,7 @@ kahless (KAY-less) is an attempt at an ORM for Dictu.
 
 ## Models
 
-Kahless provides a base class model that can be used in user models. 
+Kahless provides a base class model that can be used in user models. Kahless expects models to inheret this class. At some point this will not be a requirement but for now, `< kahless.Model` your models. `:)`
 
 The fields included:
 
@@ -44,17 +44,19 @@ Indidates that the field is to be used as the primary key for the table.
 
 Automatically increments the value for the field. This is used in conjunction to the `@PrimaryKey` annotation.
 
-## Eamples
+## Examples
 
-For a full example, examine the example.du file.
+For a full example, check out the example.du file.
 
 ## API
 
 ### Retrieving Records
 
-* first
-* last
-* take
+All methods that return data return a Result type. This type contains a field called "rows" which contains the data, an error field, and a "rowsAffected" field that holds the number of records returned from the query.
+
+* first - returns the first record in the table
+* last - returns the last record in the table
+* find - gets all records from the table
 
 ### Deleting Records
 
@@ -68,7 +70,7 @@ If the model contains a field called `deletedAt`, you receive soft delete abilit
 
 ### Raw Queries
 
-* rawQuery
+* rawQuery - takes an SQL query, executes it, and returns the results in list form
 
 ## Contact
 
