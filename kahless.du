@@ -259,7 +259,7 @@ class Kahless < Validation {
                 }
             } else {
                 query += fields[i] + " ";
-            }        
+            }
         }
 
         query = query[0:query.len()-1];
