@@ -4,6 +4,7 @@ import Object;
 import Sqlite;
 import System;
 
+
 const
     selectQuery = "SELECT {} FROM {}",
     insertQuery = "INSERT INTO {} (",
@@ -27,7 +28,8 @@ const dictuToSQLType = {
  * a new instance of Kahless.
  */
 class Config { 
-    var debug = false;
+    private debug;
+    private disableSoftDelete;
 
     init(driver, path) {
         this.driver = driver;
@@ -36,6 +38,10 @@ class Config {
 
     setDebug(debug) {
         this.debug = debug;
+    }
+
+    setDisableSoftDelete(disabled) {
+        this.disableSoftDelete = disabled;
     }
 }
 
@@ -46,7 +52,6 @@ class Config {
 class Result {
     var rows = nil;
     var rowsAffected = 0;
-    var error = nil;
 }
 
 /*
@@ -356,12 +361,14 @@ class Kahless < Validation {
 
         const tableName = this.tableName(model);
 
-        // check for "deletedAt" field and perform soft delete
-        if (model.getAttribute("deletedAt") != nil) {
-            model.setAttribute("deletedAt", getTimestamp());
-            const query = "UPDATE {} SET deleted_at = '{}' WHERE id = {}".format(tableName, getTimestamp(), v);
+        if (not this.config.disableSoftDelete) {
+            // check for "deletedAt" field and perform soft delete
+            if (model.getAttribute("deletedAt") != nil) {
+                model.setAttribute("deletedAt", getTimestamp());
+                const query = "UPDATE {} SET deleted_at = '{}' WHERE id = {}".format(tableName, getTimestamp(), v);
 
-            return this.db.execute(query);
+                return this.db.execute(query);
+            }
         }
 
         var query = deleteQuery.format(tableName);
