@@ -9,7 +9,7 @@ kahless (KAY-less) is an attempt at an ORM for Dictu.
 
 ## Models
 
-Kahless provides a base class model that can be used in user models. 
+Kahless provides a base class model that can be used in user models. Kahless expects models to inheret this class. At some point this will not be a requirement but for now, `< kahless.Model` your models. `:)`
 
 The fields included:
 
@@ -51,6 +51,8 @@ For a full example, check out the example.du file.
 ## API
 
 ### Retrieving Records
+
+All methods that return data return a Result type. This type contains a field called "rows" which contains the data, an error field, and a "rowsAffected" field that holds the number of records returned from the query.
 
 * first - returns the first record in the table
 * last - returns the last record in the table

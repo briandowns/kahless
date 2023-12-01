@@ -10,7 +10,6 @@ const
     updateQuery = "UPDATE {} SET",
     createQuery = "CREATE TABLE IF NOT EXISTS {} (",
     deleteQuery = "DELETE FROM {} WHERE",
-    selectJsonQuery = "SELECT json_object({}) FROM {}",
     selectJsonQueryWithModel = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
 
 const
