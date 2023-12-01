@@ -98,7 +98,6 @@ def getTimestamp() {
  */
 def resultToClass(result, model) {
     const rows = result.unwrap();
-
 }
 
 /*
@@ -144,7 +143,7 @@ class Migrate < Validation {
         const klass = model._class;
 
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 
@@ -243,21 +242,16 @@ class Kahless < Validation {
         const tableName = model._class.classAnnotations.get("Table");
         var query = insertQuery.format(tableName);
 
-        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name" and not isModelField(x));
         const fieldsLen = fields.len();
         const fieldAnnotations = klass.fieldAnnotations;
 
         for (var i = 0; i < fieldsLen; i += 1) {
-            if (isModelField(fields[i])) {
-                continue;
-            }
-
-            if (fieldAnnotations.get(fields[i]) != nil) {
-                if (fieldAnnotations.get(fields[i]).exists("Column")) {
-                    query += fieldAnnotations.get(fields[i]).get("Column") + " ";
-                }
+            const separator = i + 1 == fieldsLen ? " " : ", ";
+            if (fieldAnnotations.get(fields[i])?.exists("Column")) {
+                query += fieldAnnotations.get(fields[i]).get("Column") + separator;
             } else {
-                query += fields[i] + " ";
+                query += fields[i] + separator;
             }
         }
 
@@ -265,10 +259,6 @@ class Kahless < Validation {
         query += ") VALUES (";
 
         for (var i = 0; i < fieldsLen; i += 1) {
-            if (isModelField(fields[i])) {
-                continue;
-            }
-
             var value = model.getAttribute(fields[i]);
             if (type(value) != "string") {
                 value = value.toString();
@@ -411,7 +401,7 @@ class Kahless < Validation {
         const klass = model._class;
 
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 
@@ -475,7 +465,7 @@ class Kahless < Validation {
         const klass = model._class;
         
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 
@@ -538,7 +528,7 @@ class Kahless < Validation {
         const klass = model._class;
 
         const err = this.verifyAnnotations(model, "Table", true);
-        if (not Success(err)) {
+        if (not err.success()) {
             return err;
         }
 

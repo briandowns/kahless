@@ -1,0 +1,44 @@
+from UnitTest import UnitTest;
+
+import "../../kahless.du" as kahless;
+
+@Table("users")
+class User < kahless.Model {
+    @Column("first_name")
+    var firstName = "";
+
+    @Column("last_name")
+    var lastName = "";
+
+    @Column("age")
+    var age = 0;
+}
+
+@Table("roles")
+class Role < kahless.Model {
+    var name = "";
+}
+
+const config = kahless.Config("sqlite", ":memory:");
+const k = kahless.Kahless(config);
+
+class TestKahlessCreate < UnitTest {
+    setUp() {
+        const models = [User(), Role()];
+        k.migrate(...models);
+    }
+
+    testInsert() {
+        const user = User();
+        user.firstName = "John";
+        user.lastName = "Doe";
+        user.age = 28;
+
+        k.create(user);
+
+        const fetchedUser = k.rawQuery("SELECT first_name, last_name, age FROM users").unwrap();
+        this.assertEquals(fetchedUser[0], ["John", "Doe", "28"]);
+    }
+}
+
+TestKahlessCreate().run();
