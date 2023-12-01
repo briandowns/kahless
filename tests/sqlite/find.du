@@ -1,0 +1,50 @@
+from UnitTest import UnitTest;
+
+import "../../kahless.du" as kahless;
+
+@Table("users")
+class User < kahless.Model {
+    @Column("first_name")
+    var firstName = "";
+
+    @Column("last_name")
+    var lastName = "";
+
+    @Column("age")
+    @Type("number")
+    var age = 0;
+}
+
+@Table("roles")
+class Role < kahless.Model {
+    var name = "";
+}
+
+const config = kahless.Config("sqlite", ":memory:");
+const k = kahless.Kahless(config);
+
+class TestKahlessFind < UnitTest {
+    setUp() {
+        const models = [User(), Role()];
+        k.migrate(...models);
+    }
+
+    testFind() {
+        const user = User();
+        user.firstName = "John";
+        user.lastName = "Doe";
+        user.age = 28;
+
+        k.create(user);
+
+        const users = k.find(User()).unwrap();
+
+        this.assertType(users, "Result");
+        this.assertType(users.rows, "list");
+        this.assertEquals(users.rows[0].firstName, "John");
+        this.assertEquals(users.rows[0].lastName, "Doe");
+        this.assertEquals(users.rows[0].age, 28);
+    }
+}
+
+TestKahlessFind().run();

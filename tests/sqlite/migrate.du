@@ -1,0 +1,41 @@
+from UnitTest import UnitTest;
+
+import "../../kahless.du" as kahless;
+
+@Table("users")
+class User < kahless.Model {
+    @Column("first_name")
+    var firstName = "";
+
+    @Column("last_name")
+    var lastName = "";
+
+    @Column("age")
+    var age = 0;
+}
+
+@Table("roles")
+class Role < kahless.Model {
+    var name = "";
+}
+
+const config = kahless.Config("sqlite", ":memory:");
+const k = kahless.Kahless(config);
+
+class TestKahlessMigrate < UnitTest {
+    testMigrate() {
+        const models = [User(), Role()];
+
+        models.forEach(def(model) => {
+            this.assertSuccess(k.migrate(model)[0]);
+        });
+
+        const users = k.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='users';");
+        this.assertEquals(users.unwrap()[0][0], 'users');
+
+        const roles = k.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='roles';");
+        this.assertEquals(roles.unwrap()[0][0], 'roles');
+    }
+}
+
+TestKahlessMigrate().run();

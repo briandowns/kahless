@@ -30,7 +30,7 @@ class Role < kahless.Model {
         print("migrating table: {}".format(table._name));
 
         const err = k.migrate(table);
-        if (not Success(err)) {
+        if (not err.success()) {
             print("error: {}".format(err));
             System.exit(1);
         }
