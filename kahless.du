@@ -1,5 +1,6 @@
 import Datetime;
 import JSON;
+import Log;
 import Object;
 import Sqlite;
 import System;
@@ -11,6 +12,7 @@ const
     updateQuery = "UPDATE {} SET",
     createQuery = "CREATE TABLE IF NOT EXISTS {} (",
     deleteQuery = "DELETE FROM {} WHERE",
+    lastRowInsertedQuery = "SELECT LAST_INSERT_ROWID()",
     selectJsonQuery = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
 
 const
@@ -99,13 +101,6 @@ def getTimestamp() {
 }
 
 /*
- * resultToClass
- */
-def resultToClass(result, model) {
-    const rows = result.unwrap();
-}
-
-/*
  * Validation contains common logic used throughout the 
  * Kahless module. It is to be inhereted into any class
  * needing access to the logic.
@@ -136,6 +131,10 @@ class Migrate < Validation {
      */
     run(model) {
         const query = this.buildQuery(model).unwrap();
+
+        if (this.db.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
 
         return this.db.db.execute(query);
     }
@@ -273,9 +272,18 @@ class Kahless < Validation {
 
         query = query[0:query.len()-1];
         query += ")";
+
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
+
         const insert = this.db.execute(query);
 
-        const lastId = this.db.execute("SELECT LAST_INSERT_ROWID()").unwrap();
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(lastRowInsertedQuery));
+        }
+
+        const lastId = this.db.execute(lastRowInsertedQuery).unwrap();
         model.id = lastId[0][0];
 
         return insert;
@@ -286,6 +294,10 @@ class Kahless < Validation {
      * or validations and returns the results.
      */
     rawQuery(query) {
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
+
         return this.db.execute(query);
     }
 
@@ -345,6 +357,10 @@ class Kahless < Validation {
 
         query = query[0:query.len()-1];
         query += " WHERE id = {};".format(id);
+        
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
 
         return this.db.execute(query);
     }
@@ -366,6 +382,10 @@ class Kahless < Validation {
             if (model.getAttribute("deletedAt") != nil) {
                 model.setAttribute("deletedAt", getTimestamp());
                 const query = "UPDATE {} SET deleted_at = '{}' WHERE id = {}".format(tableName, getTimestamp(), v);
+                
+                if (this.config.debug) {
+                    Log.println("DEBUG: {}".format(query));
+                }
 
                 return this.db.execute(query);
             }
@@ -399,6 +419,10 @@ class Kahless < Validation {
             }
             default:
                 return Error("unsupported type: ", t);
+        }
+
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
         }
 
         return this.db.execute(query);
@@ -440,6 +464,10 @@ class Kahless < Validation {
 
         var query = selectJsonQuery.format(jsonFields, tableName);
         query += " ORDER BY id LIMIT 1";
+
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
         
         const res = this.db.execute(query);
         if (not res.success()) {
@@ -504,6 +532,10 @@ class Kahless < Validation {
 
         var query = selectJsonQuery.format(jsonFields, tableName);
 
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
+
         const res = this.db.execute(query);
         if (not res.success()) {
             return res;
@@ -567,6 +599,10 @@ class Kahless < Validation {
 
         var query = selectJsonQuery.format(jsonFields, tableName);
         query += " ORDER BY id DESC LIMIT 1";
+
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
 
         const res = this.db.execute(query);
         if (not res.success()) {
