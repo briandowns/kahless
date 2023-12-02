@@ -22,6 +22,7 @@ class Role < kahless.Model {
 
 { // main
     const config = kahless.Config("sqlite", "test.db");
+    config.setDebug(true);
 
     var k = kahless.Kahless(config);
 
@@ -30,7 +31,7 @@ class Role < kahless.Model {
         print("migrating table: {}".format(table._name));
 
         const err = k.migrate(table);
-        if (not err.success()) {
+        if (not Success(err)) {
             print("error: {}".format(err));
             System.exit(1);
         }
@@ -99,5 +100,5 @@ class Role < kahless.Model {
     print(roles);
     const find2 = k.find(Role());
     print(find2.unwrap().rowsAffected);
-    find2.unwrap().rows.forEach(def(role) => print("XXX - {}".format(role.name)));
+    find2.unwrap().rows.forEach(def(role) => print(role.name));
 }
