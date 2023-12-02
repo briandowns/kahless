@@ -4,13 +4,14 @@ import Object;
 import Sqlite;
 import System;
 
+
 const
     selectQuery = "SELECT {} FROM {}",
     insertQuery = "INSERT INTO {} (",
     updateQuery = "UPDATE {} SET",
     createQuery = "CREATE TABLE IF NOT EXISTS {} (",
     deleteQuery = "DELETE FROM {} WHERE",
-    selectJsonQueryWithModel = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
+    selectJsonQuery = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
 
 const
     singleQuote = "\"",
@@ -28,6 +29,7 @@ const dictuToSQLType = {
  */
 class Config { 
     var debug = false;
+    var disableSoftDelete = false;
 
     init(driver, path) {
         this.driver = driver;
@@ -36,6 +38,10 @@ class Config {
 
     setDebug(debug) {
         this.debug = debug;
+    }
+
+    setDisableSoftDelete(disabled) {
+        this.disableSoftDelete = disabled;
     }
 }
 
@@ -46,7 +52,6 @@ class Config {
 class Result {
     var rows = nil;
     var rowsAffected = 0;
-    var error = nil;
 }
 
 /*
@@ -356,12 +361,14 @@ class Kahless < Validation {
 
         const tableName = this.tableName(model);
 
-        // check for "deletedAt" field and perform soft delete
-        if (model.getAttribute("deletedAt") != nil) {
-            model.setAttribute("deletedAt", getTimestamp());
-            const query = "UPDATE {} SET deleted_at = '{}' WHERE id = {}".format(tableName, getTimestamp(), v);
+        if (not this.config.disableSoftDelete) {
+            // check for "deletedAt" field and perform soft delete
+            if (model.getAttribute("deletedAt") != nil) {
+                model.setAttribute("deletedAt", getTimestamp());
+                const query = "UPDATE {} SET deleted_at = '{}' WHERE id = {}".format(tableName, getTimestamp(), v);
 
-            return this.db.execute(query);
+                return this.db.execute(query);
+            }
         }
 
         var query = deleteQuery.format(tableName);
@@ -431,7 +438,7 @@ class Kahless < Validation {
 
         jsonFields = jsonFields[0:jsonFields.len()-1];
 
-        var query = selectJsonQueryWithModel.format(jsonFields, tableName);
+        var query = selectJsonQuery.format(jsonFields, tableName);
         query += " ORDER BY id LIMIT 1";
         
         const res = this.db.execute(query);
@@ -495,7 +502,7 @@ class Kahless < Validation {
 
         jsonFields = jsonFields[0:jsonFields.len()-1];
 
-        var query = selectJsonQueryWithModel.format(jsonFields, tableName);
+        var query = selectJsonQuery.format(jsonFields, tableName);
 
         const res = this.db.execute(query);
         if (not res.success()) {
@@ -558,7 +565,7 @@ class Kahless < Validation {
 
         jsonFields = jsonFields[0:jsonFields.len()-1];
 
-        var query = selectJsonQueryWithModel.format(jsonFields, tableName);
+        var query = selectJsonQuery.format(jsonFields, tableName);
         query += " ORDER BY id DESC LIMIT 1";
 
         const res = this.db.execute(query);
