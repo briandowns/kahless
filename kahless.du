@@ -499,7 +499,7 @@ class Kahless < Validation {
     /* 
      * find gets all records for the given model.
      */
-    find(model) {
+    find(model, id=0) {
         const klass = model._class;
         
         const err = this.verifyAnnotations(model, "Table", true);
@@ -531,6 +531,10 @@ class Kahless < Validation {
         jsonFields = jsonFields[0:jsonFields.len()-1];
 
         var query = selectJsonQuery.format(jsonFields, tableName);
+
+        if (id != 0) {
+            query += " WHERE id = {}".format(id);   
+        }
 
         if (this.config.debug) {
             Log.println("DEBUG: {}".format(query));

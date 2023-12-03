@@ -98,7 +98,7 @@ class Role < kahless.Model {
     );
     
     print(roles);
-    const find2 = k.find(Role());
+    const find2 = k.find(Role(), 2);
     print(find2.unwrap().rowsAffected);
     find2.unwrap().rows.forEach(def(role) => print(role.name));
 }
