@@ -44,6 +44,14 @@ Indidates that the field is to be used as the primary key for the table.
 
 Automatically increments the value for the field. This is used in conjunction to the `@PrimaryKey` annotation.
 
+`@Index("idx_name")`
+
+Creates an index for the field the annotation is applied.
+
+`@UniqueIndex("idx_name")`
+
+Creates a unique index for the field the annotation is applied.
+
 ## Examples
 
 For a full example, check out the example.du file.
