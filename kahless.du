@@ -132,7 +132,10 @@ class Migrate < Validation {
             Log.println("DEBUG: {}".format(queries.get("createTable")));
         }
 
-        this.db.db.execute(queries.get("createTable"));
+        const res = this.db.db.execute(queries.get("createTable"));
+        if (not Success(res)) {
+            return res;
+        }
 
         const indexQueries = queries.get("indices");
         if (indexQueries.len()) {
@@ -141,7 +144,10 @@ class Migrate < Validation {
                     Log.println("DEBUG: {}".format(queries.get("createTable")));
                 }
 
-                this.db.db.execute(query);
+                const iRes = this.db.db.execute(query);
+                if (not Success(iRes)) {
+                    return iRes;
+                }
             });
         }
     }
