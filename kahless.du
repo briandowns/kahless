@@ -13,6 +13,8 @@ const
     createQuery = "CREATE TABLE IF NOT EXISTS {} (",
     deleteQuery = "DELETE FROM {} WHERE",
     lastRowInsertedQuery = "SELECT LAST_INSERT_ROWID()",
+    createIndexQuery = "CREATE {} INDEX {} ON {}({})",
+    createIndexQuery = "CREATE {} INDEX {} ON {}({})",
     selectJsonQuery = "SELECT json_object('id', id, 'createdAt', created_at, 'updatedAt', updated_at, 'deletedAt', deleted_at, {}) FROM {}";
 
 const
@@ -26,25 +28,19 @@ const dictuToSQLType = {
 };
 
 /*
- * Config contains fieldss to provide when instantiating
- * a new instance of Kahless.
+ * SqliteMaster is a class that represents the sqlite_master
+ * table.
  */
-class Config { 
-    var debug = false;
-    var disableSoftDelete = false;
+class SqliteMaster {
+    var type = "";
+    var name = "";
 
-    init(driver, path) {
-        this.driver = driver;
-        this.path = path;
-    }
+    @Column("table_name")
+    var tableName = "";
 
-    setDebug(debug) {
-        this.debug = debug;
-    }
-
-    setDisableSoftDelete(disabled) {
-        this.disableSoftDelete = disabled;
-    }
+    @Column("root_page")
+    var rootPage = 0;
+    var sql = "";
 }
 
 /*
@@ -130,20 +126,37 @@ class Migrate < Validation {
      * run performs the migration.
      */
     run(model) {
-        const query = this.buildQuery(model).unwrap();
+        const queries = this.buildQueries(model).unwrap();
 
         if (this.db.config.debug) {
-            Log.println("DEBUG: {}".format(query));
+            Log.println("DEBUG: {}".format(queries.get("createTable")));
         }
 
-        return this.db.db.execute(query);
+        const res = this.db.db.execute(queries.get("createTable"));
+        if (not Success(res)) {
+            return res;
+        }
+
+        const indexQueries = queries.get("indices");
+        if (indexQueries.len()) {
+            indexQueries.forEach(def(query) => {
+                if (this.db.config.debug) {
+                    Log.println("DEBUG: {}".format(queries.get("createTable")));
+                }
+
+                const iRes = this.db.db.execute(query);
+                if (not Success(iRes)) {
+                    return iRes;
+                }
+            });
+        }
     }
 
     /* 
-     * buildQuery builds the SQL query to create the table
-     * for the given model.
+     * buildQueries builds the SQL queries to create the table
+     * for the given model and any indexes.
      */
-    private buildQuery(model) {
+    private buildQueries(model) {
         const klass = model._class;
 
         const err = this.verifyAnnotations(model, "Table", true);
@@ -154,16 +167,22 @@ class Migrate < Validation {
         const tableName = klass.classAnnotations["Table"];
 
         var query = createQuery.format(tableName);
+        var indices = [];
 
         const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
         const fieldsLen = fields.len();
         const fieldAnnotations = klass.fieldAnnotations;
-        
+
         for (var i = 0; i < fields.len(); i += 1) {
+            var columnName = "";
+
             if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Column")) {
-                query += fieldAnnotations.get(fields[i]).get("Column");
+                columnName = fieldAnnotations.get(fields[i]).get("Column");
+                query += columnName;
+                
             } else {
-                query += fields[i];
+                columnName = fields[i];
+                query += columnName;
             }
             
             if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Type")) {
@@ -185,14 +204,49 @@ class Migrate < Validation {
                 query += " AUTOINCREMENT";
             }
 
+            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Index")) {
+                const idxName = fieldAnnotations.get(fields[i]).get("Index");
+                indices.push(createIndexQuery.format(" ", idxName, tableName, columnName));
+            }
+
+            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("UniqueIndex")) {
+                const idxName = fieldAnnotations.get(fields[i]).get("UniqueIndex");
+                indices.push(createIndexQuery.format("UNIQUE", idxName, tableName, columnName));
+            }
+
             if (i != fields.len()-1) {
                 query += ", ";
             } else {
                 query += ")";
             }
         }
-        
-        return Success(query);
+
+        return Success({
+            "createTable": query,
+            "indices": indices
+        });
+    }
+}
+
+/*
+ * Config contains fieldss to provide when instantiating
+ * a new instance of Kahless.
+ */
+class Config { 
+    var debug = false;
+    var disableSoftDelete = false;
+
+    init(driver, path) {
+        this.driver = driver;
+        this.path = path;
+    }
+
+    setDebug(debug) {
+        this.debug = debug;
+    }
+
+    setDisableSoftDelete(disabled) {
+        this.disableSoftDelete = disabled;
     }
 }
 
