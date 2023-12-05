@@ -138,17 +138,19 @@ class Migrate < Validation {
         }
 
         const indexQueries = queries.get("indices");
-        if (indexQueries.len()) {
-            indexQueries.forEach(def(query) => {
+        const indexQueriesLen = indexQueries.len();
+
+        if (indexQueriesLen > 0) {
+            for (var i = 0; i < indexQueriesLen; i += 1) {
                 if (this.db.config.debug) {
-                    Log.println("DEBUG: {}".format(queries.get("createTable")));
+                    Log.println("DEBUG: {}".format(indexQueries[i]));
                 }
 
-                const iRes = this.db.db.execute(query);
+                const iRes = this.db.db.execute(indexQueries[i]);
                 if (not Success(iRes)) {
                     return iRes;
                 }
-            });
+            }
         }
     }
 
