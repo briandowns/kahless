@@ -152,6 +152,8 @@ class Migrate < Validation {
                 }
             }
         }
+
+        return Success(nil);
     }
 
     /* 
@@ -177,42 +179,42 @@ class Migrate < Validation {
 
         for (var i = 0; i < fields.len(); i += 1) {
             var columnName = "";
+            const field = fieldAnnotations.get(fields[i]);
 
-            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Column")) {
-                columnName = fieldAnnotations.get(fields[i]).get("Column");
+            if (field != nil and field.exists("Column")) {
+                columnName = field.get("Column");
                 query += columnName;
-                
             } else {
                 columnName = fields[i];
                 query += columnName;
             }
             
-            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Type")) {
-                const fieldType = fieldAnnotations.get(fields[i]).get("Type");
+            if (field != nil and field.exists("Type")) {
+                const fieldType = field.get("Type");
                 if (fieldType == "DATETIME" and fields[i] == "createdAt") {
                     query += spaceSeperator + "DATETIME DEFAULT CURRENT_TIMESTAMP";
                 } else {
-                    query += spaceSeperator + fieldAnnotations.get(fields[i]).get("Type");
+                    query += spaceSeperator + field.get("Type");
                 }
             } else {
                 query += spaceSeperator + dictuToSQLType.get(type(fields[i]));
             }
 
-            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("PrimaryKey")) {
+            if (field != nil and field.exists("PrimaryKey")) {
                 query += " PRIMARY KEY";
             }
 
-            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("AutoIncrement")) {
+            if (field != nil and field.exists("AutoIncrement")) {
                 query += " AUTOINCREMENT";
             }
 
-            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("Index")) {
-                const idxName = fieldAnnotations.get(fields[i]).get("Index");
+            if (field != nil and field.exists("Index")) {
+                const idxName = field.get("Index");
                 indices.push(createIndexQuery.format(" ", idxName, tableName, columnName));
             }
 
-            if (fieldAnnotations.get(fields[i]) != nil and fieldAnnotations.get(fields[i]).exists("UniqueIndex")) {
-                const idxName = fieldAnnotations.get(fields[i]).get("UniqueIndex");
+            if (field != nil and field.exists("UniqueIndex")) {
+                const idxName = field.get("UniqueIndex");
                 indices.push(createIndexQuery.format("UNIQUE", idxName, tableName, columnName));
             }
 
@@ -308,8 +310,10 @@ class Kahless < Validation {
 
         for (var i = 0; i < fieldsLen; i += 1) {
             const separator = i + 1 == fieldsLen ? " " : ", ";
-            if (fieldAnnotations.get(fields[i])?.exists("Column")) {
-                query += fieldAnnotations.get(fields[i]).get("Column") + separator;
+            const field = fieldAnnotations.get(fields[i]);
+
+            if (field?.exists("Column")) {
+                query += field.get("Column") + separator;
             } else {
                 query += fields[i] + separator;
             }
@@ -394,9 +398,11 @@ class Kahless < Validation {
             if (t == "string" and v == "") {
                 continue;
             }
+
+            const field = fieldAnnotations.get(fields[i]);
         
-            if (fieldAnnotations.get(fields[i])?.exists("Column")) {
-                query += spaceSeperator + fieldAnnotations.get(fields[i]).get("Column");
+            if (field?.exists("Column")) {
+                query += spaceSeperator + field.get("Column");
             } else {
                 query += spaceSeperator + fields[i];
             }
@@ -507,9 +513,11 @@ class Kahless < Validation {
                 continue;
             }
         
-            if (fieldAnnotations.get(fields[i]) != nil) {
-                if (fieldAnnotations.get(fields[i]).exists("Column")) {
-                    jsonFields += "'" + fields[i] + "', " + fieldAnnotations.get(fields[i]).get("Column") + ",";
+            const field = fieldAnnotations.get(fields[i]);
+
+            if (field != nil) {
+                if (field.exists("Column")) {
+                    jsonFields += "'" + fields[i] + "', " + field.get("Column") + ",";
                 }
             } else {
                 jsonFields += "'" + fields[i] + "', " + fields[i] + ",";
@@ -575,9 +583,11 @@ class Kahless < Validation {
                 continue;
             }
         
-            if (fieldAnnotations.get(fields[i]) != nil) {
-                if (fieldAnnotations.get(fields[i]).exists("Column")) {
-                    jsonFields += "'" + fields[i] + "', " + fieldAnnotations.get(fields[i]).get("Column") + ",";
+            const field = fieldAnnotations.get(fields[i]);
+
+            if (field != nil) {
+                if (field.exists("Column")) {
+                    jsonFields += "'" + fields[i] + "', " + field.get("Column") + ",";
                 }
             } else {
                 jsonFields += "'" + fields[i] + "', " + fields[i] + ",";
@@ -645,10 +655,12 @@ class Kahless < Validation {
             if (isModelField(fields[i])) {
                 continue;
             }
+
+            const field = fieldAnnotations.get(fields[i]);
         
-            if (fieldAnnotations.get(fields[i]) != nil) {
-                if (fieldAnnotations.get(fields[i]).exists("Column")) {
-                    jsonFields += "'" + fields[i] + "', " + fieldAnnotations.get(fields[i]).get("Column") + ",";
+            if (field != nil) {
+                if (field.exists("Column")) {
+                    jsonFields += "'" + fields[i] + "', " + field.get("Column") + ",";
                 }
             } else {
                 jsonFields += "'" + fields[i] + "', " + fields[i] + ",";
