@@ -301,7 +301,7 @@ class Kahless < Validation {
             return err;
         }
 
-        const tableName = model._class.classAnnotations.get("Table");
+        const tableName = this.tableName(model);
         var query = insertQuery.format(tableName);
 
         const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name" and not isModelField(x));
