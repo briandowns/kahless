@@ -103,4 +103,7 @@ class Role < kahless.Model {
     const find2 = k.find(Role(), 2);
     print(find2.unwrap().rowsAffected);
     find2.unwrap().rows.forEach(def(role) => print(role.name));
+
+    const users3 = k.where(User(), "first_name = ? AND last_name = ?", ["John", "Doe"]);
+    users3.unwrap().rows.forEach(def(user) => print(user.id));
 }
