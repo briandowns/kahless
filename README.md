@@ -65,6 +65,7 @@ All methods that return data return a Result type. This type contains a field ca
 * first - returns the first record in the table
 * last - returns the last record in the table
 * find - gets all records from the table
+* where - retrieves all records matching the given condition and values
 
 ### Deleting Records
 

@@ -702,4 +702,82 @@ class Kahless < Validation {
 
         return Success(r); 
     }
+
+    /**
+     * where retrieves data based on the given constraints.
+     */
+    where(model, condition, values) {
+        if (condition == "") {
+            return Error("condition required");
+        }
+
+        if (values.len() == 0) {
+            return Error("values required");
+        }
+
+        const klass = model._class;
+
+        const err = this.verifyAnnotations(model, "Table", true);
+        if (not err.success()) {
+            return err;
+        }
+
+        const tableName = this.tableName(model);
+        const fields = model.getAttributes()["fields"].filter(def(x) => x != "_name");
+        const fieldsLen = fields.len();
+        const fieldAnnotations = klass.fieldAnnotations;
+
+        var jsonFields = "";
+
+        for (var i = 0; i < fieldsLen; i += 1) {
+            if (isModelField(fields[i])) {
+                continue;
+            }
+        
+            const field = fieldAnnotations.get(fields[i]);
+
+            if (field != nil) {
+                if (field.exists("Column")) {
+                    jsonFields += "'" + fields[i] + "', " + field.get("Column") + ",";
+                }
+            } else {
+                jsonFields += "'" + fields[i] + "', " + fields[i] + ",";
+            }
+        }
+
+        jsonFields = jsonFields[0:jsonFields.len()-1];
+
+        var query = selectJsonQuery.format(jsonFields, tableName);
+        query += " WHERE" + spaceSeperator + condition;
+
+        if (this.config.debug) {
+            Log.println("DEBUG: {}".format(query));
+        }
+
+        const res = this.db.execute(query, values);
+        if (not res.success()) {
+            return res;
+        }
+
+        const r = Result();
+        r.rows = [];
+
+        res.unwrap().forEach(def(row) => {
+            const parsed = JSON.parse(row[0]).unwrap();
+            const newModel = klass();
+
+            for (var i = 0; i < fieldsLen; i += 1) {
+                // filter out "deleted" records
+                if (fields[i] == "deletedAt" and fields[i] != nil) {
+                    continue;
+                }
+                newModel.setAttribute(fields[i], parsed.get(fields[i]));
+            }
+
+            r.rows.push(newModel);
+        });
+        r.rowsAffected = r.rows.len();
+
+        return Success(r); 
+    }
 }
